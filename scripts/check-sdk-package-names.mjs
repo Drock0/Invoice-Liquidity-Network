@@ -31,6 +31,16 @@
  *   7. table-mismatch     a markdown table row of the form
  *                         | `sdk/` | `<name>` | names the package that
  *                         directory actually publishes.
+ *   8. example-name       every examples/<dir>/package.json is named
+ *                         `iln-<dir>` (RFC 0002: examples are unscoped with an
+ *                         `iln-` prefix, so they can never shadow a publishable
+ *                         `@iln/*` package) (#1220).
+ *   9. example-private    every example manifest sets `"private": true`.
+ *  10. example-undeclared-import
+ *                         every `@iln/*` package an example imports or
+ *                         requires is declared in that example's own
+ *                         package.json (otherwise it only resolves through
+ *                         workspace hoisting and breaks when copied out).
  *
  * Usage:
  *   node scripts/check-sdk-package-names.mjs [--root=<dir>] [--json=<file>]
@@ -52,7 +62,12 @@ export const CANONICAL_PACKAGES = Object.freeze({
 export const LEGACY_NAMES = Object.freeze([
   '@invoice-liquidity/sdk',
   '@invoice-liquidity/sdk-next',
+  // Zero-source re-export alias removed from packages/invoice-sdk (#1220).
+  '@iln/invoice-sdk',
 ]);
+
+/** RFC 0002: example packages are unscoped and `iln-` prefixed. */
+export const EXAMPLE_NAME_PREFIX = 'iln-';
 
 export const ALLOW_PRAGMA = 'sdk-name-check: allow-legacy';
 
@@ -97,6 +112,23 @@ const ALLOWED_PATHS = [
 ];
 
 const DEP_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
+
+const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts']);
+
+// `from '<spec>'`, `import '<spec>'`, `import('<spec>')`, `require('<spec>')`.
+const IMPORT_RE =
+  /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"](@iln\/[A-Za-z0-9._-]+)(?:\/[^'"]*)?['"]/g;
+
+/** Returns the `@iln/*` package names a source file imports, with line numbers. */
+export function findIlnImports(text) {
+  const hits = [];
+  text.split(/\r?\n/).forEach((line, i) => {
+    IMPORT_RE.lastIndex = 0;
+    let m;
+    while ((m = IMPORT_RE.exec(line)) !== null) hits.push({ line: i + 1, name: m[1] });
+  });
+  return hits;
+}
 
 function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
@@ -300,6 +332,61 @@ export function checkRepository(root, { exclude = [] } = {}) {
           file,
           field: 'peerDependencies',
           message: `peer range "${peer}" for "${name}" does not accept current version ${sdkVersions[name]}`,
+        });
+      }
+    }
+  }
+
+  // 8–10. Example manifests and the @iln/* packages their sources import.
+  const exampleDirs = new Set();
+  for (const file of files) {
+    const m = /^examples\/([^/]+)\//.exec(file);
+    if (m) exampleDirs.add(m[1]);
+  }
+  for (const dir of [...exampleDirs].sort()) {
+    const manifestFile = `examples/${dir}/package.json`;
+    let pkg = null;
+    if (files.includes(manifestFile)) {
+      try {
+        pkg = readJson(join(root, manifestFile));
+      } catch {
+        add({
+          rule: 'example-name',
+          file: manifestFile,
+          line: 1,
+          message: 'package.json does not parse',
+        });
+        continue;
+      }
+      const expected = `${EXAMPLE_NAME_PREFIX}${dir}`;
+      if (pkg.name !== expected) {
+        add({
+          rule: 'example-name',
+          file: manifestFile,
+          line: 2,
+          message: `name is "${pkg.name}", expected "${expected}" (RFC 0002: unscoped, iln- prefix)`,
+        });
+      }
+      if (pkg.private !== true) {
+        add({
+          rule: 'example-private',
+          file: manifestFile,
+          message: 'example packages must set "private": true so they are never published',
+        });
+      }
+    }
+    const declared = new Set(DEP_FIELDS.flatMap((field) => Object.keys(pkg?.[field] ?? {})));
+    for (const file of files) {
+      if (!file.startsWith(`examples/${dir}/`) || !SOURCE_EXTENSIONS.has(extname(file))) continue;
+      for (const hit of findIlnImports(readFileSync(join(root, file), 'utf8'))) {
+        if (declared.has(hit.name)) continue;
+        add({
+          rule: 'example-undeclared-import',
+          file,
+          line: hit.line,
+          message: pkg
+            ? `imports "${hit.name}" but ${manifestFile} does not declare it`
+            : `imports "${hit.name}" but examples/${dir}/ has no package.json declaring it`,
         });
       }
     }

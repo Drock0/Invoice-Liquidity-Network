@@ -35,6 +35,37 @@ dependency: install it alongside `@iln/react` in your app.
 CI enforces the canonical names with `scripts/check-sdk-package-names.mjs`.
 See [runbooks/sdk-package-names.md](runbooks/sdk-package-names.md).
 
+## Deprecated SDK surface
+
+Using a deprecated surface emits a migration warning **once per process**,
+with a stable code. In Node it goes through `process.emitWarning` as a
+`DeprecationWarning`, so `--no-deprecation` silences it, `--trace-deprecation`
+shows the importing stack, and `--throw-deprecation` makes it fatal (useful in
+CI). In browsers and React Native it is a single `console.warn`.
+
+| Code | Deprecated surface | Use instead | Removed in |
+|---|---|---|---|
+| `ILN_SDK_DEP001` | `@iln/sdk/legacy` | `@iln/sdk` (identical exports) | `1.0.0` |
+
+```diff
+- import { ILNSdk, ILN_TESTNET } from "@iln/sdk/legacy";
++ import { ILNSdk, ILN_TESTNET } from "@iln/sdk";
+```
+
+To find remaining usage in a service, count warnings by code:
+
+```ts
+process.on('warning', (w) => {
+  if ((w as { code?: string }).code?.startsWith('ILN_SDK_DEP')) {
+    metrics.increment('iln_sdk_deprecated_surface_used', { code: (w as { code?: string }).code });
+  }
+});
+```
+
+CI keeps this table, the runtime warning and the registry in
+`sdk/src/deprecations.ts` in step with `scripts/check-sdk-deprecations.mjs`.
+See [runbooks/sdk-deprecations.md](runbooks/sdk-deprecations.md).
+
 ---
 
 ## Overview of Breaking Changes

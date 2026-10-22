@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import {
   ALLOW_PRAGMA,
   checkRepository,
+  findIlnImports,
   findLegacyReferences,
   findTableMismatches,
   rangeAccepts,
@@ -16,6 +17,11 @@ import {
 const SCRIPT = resolve(dirname(fileURLToPath(import.meta.url)), '../check-sdk-package-names.mjs');
 const REPO_ROOT = resolve(dirname(SCRIPT), '..');
 const LEGACY = '@invoice-liquidity/sdk';
+
+/** An RFC 0002-conformant manifest for the scaffold's `examples/app`. */
+function exampleApp(dependencies) {
+  return { name: 'iln-app', private: true, dependencies };
+}
 
 function write(root, rel, content) {
   const abs = join(root, rel);
@@ -27,10 +33,8 @@ function write(root, rel, content) {
 function scaffold(root) {
   write(root, 'sdk/package.json', { name: '@iln/sdk', version: '0.1.0' });
   write(root, 'packages/sdk/package.json', { name: '@iln/sdk-next', version: '0.1.0' });
-  write(root, 'examples/app/package.json', {
-    name: 'app',
-    dependencies: { '@iln/sdk': 'file:../../sdk' },
-  });
+  write(root, 'examples/app/package.json', exampleApp({ '@iln/sdk': 'file:../../sdk' }));
+  write(root, 'examples/app/index.ts', "import { ILNSdk } from '@iln/sdk';\n");
   write(root, 'packages/react/package.json', {
     name: '@iln/react',
     peerDependencies: { '@iln/sdk': '^0.1.0' },
@@ -84,21 +88,15 @@ describe('failure', () => {
   });
 
   it('flags a legacy dependency key and the path it points at', () => {
-    write(root, 'examples/app/package.json', {
-      name: 'app',
-      dependencies: { [LEGACY]: 'file:../../sdk' },
-    });
+    write(root, 'examples/app/package.json', exampleApp({ [LEGACY]: 'file:../../sdk' }));
     const rules = checkRepository(root)
       .findings.map((f) => f.rule)
       .sort();
-    assert.deepEqual(rules, ['legacy-dependency', 'path-mismatch']);
+    assert.deepEqual(rules, ['example-undeclared-import', 'legacy-dependency', 'path-mismatch']);
   });
 
   it('flags sdk-next consumed under the stable name', () => {
-    write(root, 'examples/app/package.json', {
-      name: 'app',
-      dependencies: { '@iln/sdk': 'file:../../packages/sdk' },
-    });
+    write(root, 'examples/app/package.json', exampleApp({ '@iln/sdk': 'file:../../packages/sdk' }));
     const [f] = checkRepository(root).findings;
     assert.equal(f.rule, 'path-mismatch');
     assert.match(f.message, /@iln\/sdk-next/);
@@ -146,6 +144,60 @@ describe('failure', () => {
     assert.equal(f.line, 3);
   });
 
+  it('flags the retired @iln/invoice-sdk alias', () => {
+    write(root, 'docs/install.md', "import { ILNSdk } from '@iln/invoice-sdk';\n");
+    const [f] = checkRepository(root).findings;
+    assert.equal(f.rule, 'legacy-reference');
+    assert.match(f.message, /use "@iln\/sdk"/);
+  });
+
+  it('flags an example whose name breaks the RFC 0002 convention (#1220)', () => {
+    write(root, 'examples/app/package.json', {
+      ...exampleApp({ '@iln/sdk': 'file:../../sdk' }),
+      name: 'app',
+    });
+    const [f] = checkRepository(root).findings;
+    assert.equal(f.rule, 'example-name');
+    assert.match(f.message, /expected "iln-app"/);
+  });
+
+  it('flags an example that claims the publishable @iln scope', () => {
+    write(root, 'examples/app/package.json', {
+      ...exampleApp({ '@iln/sdk': 'file:../../sdk' }),
+      name: '@iln/app',
+    });
+    assert.deepEqual(
+      checkRepository(root).findings.map((f) => f.rule),
+      ['example-name']
+    );
+  });
+
+  it('flags an example that is not private', () => {
+    write(root, 'examples/app/package.json', {
+      ...exampleApp({ '@iln/sdk': 'file:../../sdk' }),
+      private: false,
+    });
+    assert.deepEqual(
+      checkRepository(root).findings.map((f) => f.rule),
+      ['example-private']
+    );
+  });
+
+  it('flags an @iln/* import the example does not declare', () => {
+    write(root, 'examples/app/src/react.tsx', "import { useInvoice } from '@iln/react';\n");
+    const [f] = checkRepository(root).findings;
+    assert.equal(f.rule, 'example-undeclared-import');
+    assert.equal(f.file, 'examples/app/src/react.tsx');
+    assert.equal(f.line, 1);
+  });
+
+  it('flags @iln/* imports in an example directory with no manifest', () => {
+    write(root, 'examples/static/decoder.ts', "const sdk = require('@iln/sdk');\n");
+    const [f] = checkRepository(root).findings;
+    assert.equal(f.rule, 'example-undeclared-import');
+    assert.match(f.message, /has no package\.json/);
+  });
+
   it('exits 1 from the CLI and still writes the report', () => {
     write(root, 'docs/install.md', `npm install ${LEGACY}\n`);
     const out = join(root, 'report.json');
@@ -177,15 +229,9 @@ describe('replay / restart', () => {
   });
 
   it('goes green after remediation, then red again on regression', () => {
-    write(root, 'examples/app/package.json', {
-      name: 'app',
-      dependencies: { [LEGACY]: 'file:../../sdk' },
-    });
+    write(root, 'examples/app/package.json', exampleApp({ [LEGACY]: 'file:../../sdk' }));
     assert.equal(checkRepository(root).summary.ok, false);
-    write(root, 'examples/app/package.json', {
-      name: 'app',
-      dependencies: { '@iln/sdk': 'file:../../sdk' },
-    });
+    write(root, 'examples/app/package.json', exampleApp({ '@iln/sdk': 'file:../../sdk' }));
     assert.equal(checkRepository(root).summary.ok, true);
     write(root, 'examples/app/index.ts', `import { ILNSdk } from '${LEGACY}';\n`);
     assert.equal(checkRepository(root).summary.ok, false);
@@ -251,6 +297,37 @@ describe('boundary conditions', () => {
     assert.equal(rangeAccepts('^0.0.1 || ^0.1.0', '0.1.0'), true);
     assert.equal(rangeAccepts('workspace:*', '0.1.0'), true);
     assert.equal(rangeAccepts('not-a-range', '0.1.0'), false);
+  });
+
+  it('extracts @iln/* imports from every module syntax, subpaths included', () => {
+    const text = [
+      "import { a } from '@iln/sdk';",
+      'import type { B } from "@iln/sdk/legacy";',
+      "import '@iln/react';",
+      "const c = await import('@iln/sdk-next');",
+      "const d = require('@iln/shared');",
+      "import x from '@stellar/stellar-sdk';",
+      "// see '@iln/docs' for more",
+    ].join('\n');
+    assert.deepEqual(
+      findIlnImports(text).map((h) => [h.line, h.name]),
+      [
+        [1, '@iln/sdk'],
+        [2, '@iln/sdk'],
+        [3, '@iln/react'],
+        [4, '@iln/sdk-next'],
+        [5, '@iln/shared'],
+      ]
+    );
+  });
+
+  it('accepts @iln/* packages declared in any dependency field of the example', () => {
+    write(root, 'examples/app/package.json', {
+      ...exampleApp({ '@iln/sdk': 'file:../../sdk' }),
+      devDependencies: { '@iln/eslint-config': 'workspace:*' },
+    });
+    write(root, 'examples/app/lint.mjs', "import config from '@iln/eslint-config';\n");
+    assert.equal(checkRepository(root).summary.ok, true);
   });
 
   it('reports a missing SDK manifest instead of crashing', () => {

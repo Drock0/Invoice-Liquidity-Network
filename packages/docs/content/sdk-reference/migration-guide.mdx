@@ -8,19 +8,19 @@ For supported dependency versions, see the [SDK compatibility matrix on GitHub](
 
 ## Package Name
 
-Older applications may refer to `@invoice-liquidity/sdk`. The stable package
+Older applications may refer to `@invoice-liquidity/sdk`. The stable package {/* sdk-name-check: allow-legacy */}
 in `sdk/` is published as `@iln/sdk`; update package specifiers, imports,
 `pnpm --filter` arguments, bundler externals and aliases, and TypeScript
 `paths` entries. A pnpm filter using the retired name can match no package
 while still exiting successfully.
 
 ```diff
-- "@invoice-liquidity/sdk": "^0.1.0"
+- "@invoice-liquidity/sdk": "^0.1.0"      // sdk-name-check: allow-legacy
 + "@iln/sdk": "^0.1.0"
 ```
 
 ```diff
-- import { ILNSdk, ILN_TESTNET } from "@invoice-liquidity/sdk";
+- import { ILNSdk, ILN_TESTNET } from "@invoice-liquidity/sdk"; // sdk-name-check: allow-legacy
 + import { ILNSdk, ILN_TESTNET } from "@iln/sdk";
 ```
 
@@ -28,6 +28,22 @@ while still exiting successfully.
 SDK alongside `@iln/react` in your application. The repository's
 [SDK package-name check](https://github.com/Invoice-Liquidity-Network/Invoice-Liquidity-Network/blob/main/scripts/check-sdk-package-names.mjs)
 guards canonical package names in CI.
+
+## Deprecated SDK Surface
+
+A deprecated surface emits a migration warning once per process, with a stable
+code. In Node this is a `DeprecationWarning` from `process.emitWarning`, so
+`--no-deprecation`, `--trace-deprecation` and `--throw-deprecation` all apply.
+Browsers and React Native get a single `console.warn`.
+
+| Code | Deprecated surface | Use instead | Removed in |
+| --- | --- | --- | --- |
+| `ILN_SDK_DEP001` | `@iln/sdk/legacy` | `@iln/sdk` (identical exports) | `1.0.0` |
+
+```diff
+- import { ILNSdk, ILN_TESTNET } from "@iln/sdk/legacy";
++ import { ILNSdk, ILN_TESTNET } from "@iln/sdk";
+```
 
 ## Breaking Changes
 

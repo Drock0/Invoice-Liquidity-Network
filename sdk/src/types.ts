@@ -35,6 +35,18 @@ export type {
   LPStatsUpdatedEvent,
 } from '@iln/shared';
 
+// Dispute workflow types, re-exported so `@iln/react` (and other consumers)
+// import them from the canonical SDK instead of the unpublished `@iln/shared`
+// workspace package (#1221). Type-only: no runtime bytes are added.
+export type {
+  DisputeAnalytics,
+  DisputeEvidence,
+  DisputeReasonCategory,
+  DisputeRecord,
+  DisputeResolutionDecision,
+  DisputeStatus,
+} from '@iln/shared';
+
 /**
  * Parameters for submitting a new invoice to the ILN contract.
  *

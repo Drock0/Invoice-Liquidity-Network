@@ -1,5 +1,5 @@
 {
-  "name": "lp-automation",
+  "name": "iln-lp-automation",
   "version": "1.0.0",
   "description": "LP funding automation script for Invoice Liquidity Network",
   "main": "index.ts",

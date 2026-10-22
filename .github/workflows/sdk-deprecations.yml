@@ -1,0 +1,83 @@
+name: SDK Deprecations
+
+# Blocking guard for the deprecated @iln/sdk surface (#1222).
+#
+# Every entry in sdk/src/deprecations.ts must still emit its one-time runtime
+# migration warning (ILN_SDK_DEPnnn) from the deprecated entry point, be
+# declared in `sideEffects` so bundlers keep that warning, be documented in
+# docs/sdk-migration-guide.md, and not be overdue for removal. The JSON report
+# (including which file emits each code) is uploaded on every run as proof the
+# control ran — see docs/runbooks/sdk-deprecations.md.
+#
+# Dependency-free (plain Node), so it does not need a pnpm install. The runtime
+# behaviour itself is covered by sdk/src/deprecations.test.ts in `Core · test`.
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+  push:
+    branches:
+      - main
+      - dev
+  schedule:
+    # Weekly sweep: catches an entry going overdue after a version bump.
+    - cron: '41 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sdk-deprecations:
+    name: SDK deprecation warnings
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Unit tests for the guard
+        run: node --test scripts/__tests__/check-sdk-deprecations.test.mjs
+
+      - name: Enforce deprecation warnings
+        run: node scripts/check-sdk-deprecations.mjs --json="$RUNNER_TEMP/sdk-deprecations-report.json"
+
+      - name: Job summary
+        if: always()
+        run: |
+          REPORT="$RUNNER_TEMP/sdk-deprecations-report.json"
+          [ -f "$REPORT" ] || exit 0
+          node -e '
+            const r = require(process.argv[1]);
+            const s = r.summary;
+            const lines = [
+              "### SDK deprecations",
+              "",
+              `**${s.ok ? "✅ pass" : "❌ fail"}** — ${s.total} finding(s) ${JSON.stringify(s.byRule)}, SDK ${s.sdkVersion}`,
+              "",
+              "| Code | Surface | Removed in | Emitted by |",
+              "|---|---|---|---|",
+              ...s.deprecations.map((d) => `| ${d.code} | \`${d.surface}\` | ${d.removedIn} | ${d.emittedBy.join(", ") || "—"} |`),
+            ];
+            console.log(lines.join("\n"));
+          ' "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-deprecations-report
+          path: ${{ runner.temp }}/sdk-deprecations-report.json
+          if-no-files-found: ignore
+          retention-days: 30

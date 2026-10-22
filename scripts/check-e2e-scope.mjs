@@ -30,7 +30,7 @@ const ROOT = resolve(__dirname, '..');
  *  cross-package dependency. */
 const CLIENT_PACKAGES = new Set([
   '@iln/sdk',
-  '@iln/invoice-sdk',
+  '@iln/invoice-sdk', // retired alias (#1220), still classified as a client — sdk-name-check: allow-legacy
   '@invoice-liquidity/cli',
   '@iln/cli',
   'iln-indexer',

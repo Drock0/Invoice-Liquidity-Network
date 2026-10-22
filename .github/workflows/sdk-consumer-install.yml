@@ -1,0 +1,103 @@
+name: SDK Consumer Install
+
+# Blocking guard: the canonical SDK installs from a clean consumer project
+# (#1223).
+#
+# Packs @iln/sdk with pnpm (exactly as the release does), installs the tarball
+# with npm into a fresh project under $RUNNER_TEMP (outside the workspace, so no
+# workspace link can mask a missing dependency), then require()s and import()s
+# every export subpath and type-checks them with tsc under nodenext and bundler
+# resolution. Static checks also fail on a runtime dependency on an unpublished
+# workspace package, file:/link: specs, or declarations that import an
+# undeclared package. The JSON report (per-probe results and timings) is
+# uploaded on every run as proof the control ran — see
+# docs/runbooks/sdk-consumer-install.md.
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'sdk/**'
+      - 'packages/shared/**'
+      - 'packages/react/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'scripts/check-sdk-consumer-install.mjs'
+      - 'scripts/__tests__/check-sdk-consumer-install.test.mjs'
+      - '.github/workflows/sdk-consumer-install.yml'
+  push:
+    branches:
+      - main
+      - dev
+  schedule:
+    # Weekly sweep: a transitive dependency can disappear from the registry
+    # without any change in this repository.
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sdk-consumer-install:
+    name: Clean consumer install
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm with store cache
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Unit tests for the guard
+        run: node --test scripts/__tests__/check-sdk-consumer-install.test.mjs
+
+      - name: Build shared workspace dependency
+        run: pnpm --filter @iln/shared build
+
+      - name: Build @iln/sdk
+        run: pnpm --filter @iln/sdk build
+
+      - name: Install the packed SDK into a clean consumer and probe it
+        run: >-
+          node scripts/check-sdk-consumer-install.mjs --install
+          --work-dir="$RUNNER_TEMP/clean-consumer"
+          --json="$RUNNER_TEMP/sdk-consumer-install-report.json"
+
+      - name: Job summary
+        if: always()
+        run: |
+          REPORT="$RUNNER_TEMP/sdk-consumer-install-report.json"
+          [ -f "$REPORT" ] || exit 0
+          node -e '
+            const r = require(process.argv[1]);
+            const s = r.summary;
+            const lines = [
+              "### SDK clean consumer install",
+              "",
+              `**${s.ok ? "✅ pass" : "❌ fail"}** (${s.mode}) — ${s.total} finding(s) ${JSON.stringify(s.byRule)}`,
+              "",
+              "| Package | Probe | Result |",
+              "|---|---|---|",
+              ...s.installs.flatMap((i) => i.probes.map((p) => `| ${i.pkg} | ${p.probe} | ${p.ok ? "✅" : "❌"} |`)),
+              "",
+              ...r.findings.map((f) => `- \`${f.rule}\` ${f.pkg}: ${f.message}`),
+            ];
+            console.log(lines.join("\n"));
+          ' "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-consumer-install-report
+          path: ${{ runner.temp }}/sdk-consumer-install-report.json
+          if-no-files-found: ignore
+          retention-days: 30

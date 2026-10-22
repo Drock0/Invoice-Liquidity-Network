@@ -96,6 +96,12 @@
     "test:react-peer-contract": "node --test scripts/__tests__/check-react-peer-contract.test.mjs",
     "check:sdk-package-names": "node scripts/check-sdk-package-names.mjs",
     "test:sdk-package-names": "node --test scripts/__tests__/check-sdk-package-names.test.mjs",
+    "check:react-sdk-imports": "node scripts/check-react-sdk-imports.mjs",
+    "test:react-sdk-imports": "node --test scripts/__tests__/check-react-sdk-imports.test.mjs",
+    "check:sdk-deprecations": "node scripts/check-sdk-deprecations.mjs",
+    "test:sdk-deprecations": "node --test scripts/__tests__/check-sdk-deprecations.test.mjs",
+    "check:sdk-consumer-install": "node scripts/check-sdk-consumer-install.mjs",
+    "test:sdk-consumer-install": "node --test scripts/__tests__/check-sdk-consumer-install.test.mjs",
     "validate:canonical-nav": "node scripts/validate-canonical-nav.mjs",
     "validate:docs-migration": "node scripts/check-docs-migration.mjs"
   },

@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   migration is complete (#847).
 
 ### Removed
-- Removed `packages/invoice-sdk` (`@iln/invoice-sdk`). It was a zero-source,
+- Removed `packages/invoice-sdk` (`@iln/invoice-sdk`). It was a zero-source, <!-- sdk-name-check: allow-legacy -->
   build-time re-export alias for `@iln/sdk` kept for an older import name; a
   prior workspace audit confirmed it had no remaining consumers and it had
   been flagged for removal in its own README. Resolves the "third SDK-shaped

@@ -3,7 +3,7 @@
 **Control:** `scripts/check-sdk-package-names.mjs`
 **CI:** `.github/workflows/sdk-package-names.yml` (blocking on PRs and pushes to `main`/`dev`, plus a weekly scheduled sweep) and the `Core · test` job in `ci.yml` (runs the guard's unit tests).
 **Evidence artifact:** `sdk-package-names-report` (JSON, 30-day retention) on every run, plus a one-line job summary.
-**Origin:** #1218
+**Origin:** #1218 (example rules and the `@iln/invoice-sdk` retirement: #1220) <!-- sdk-name-check: allow-legacy -->
 
 ## Canonical names
 
@@ -12,6 +12,8 @@
 | `sdk/` | `@iln/sdk` | Stable, production SDK, published to npm |
 | `packages/sdk/` | `@iln/sdk-next` | Experimental browser-first rewrite |
 | — | `@invoice-liquidity/sdk` <!-- sdk-name-check: allow-legacy --> | **Retired.** No workspace package has this name. |
+| — | `@iln/invoice-sdk` <!-- sdk-name-check: allow-legacy --> | **Retired.** Zero-source alias removed from `packages/invoice-sdk/`. |
+| `examples/<dir>/` | `iln-<dir>` | Private reference apps (RFC 0002: unscoped, `iln-` prefix). |
 
 The retired name used to show up in install snippets, imports, `pnpm --filter`
 targets, rollup `external` lists and example manifests. Each of those either
@@ -39,6 +41,9 @@ resolved to nothing or to the wrong thing:
 | `peer-range` | an SDK `peerDependencies` range rejects the SDK's current version |
 | `legacy-reference` | a `.md/.mdx/.ts/.tsx/.js/.jsx/.mjs/.cjs/.mts/.json/.yml/.yaml` file mentions a retired name |
 | `table-mismatch` | a markdown row `` | `sdk/` | `@name` | `` names the wrong package for that directory |
+| `example-name` | `examples/<dir>/package.json` is not named `iln-<dir>` (e.g. a scoped `@iln/<dir>` that could shadow a publishable package) |
+| `example-private` | an example manifest does not set `"private": true` |
+| `example-undeclared-import` | an example source file imports or requires an `@iln/*` package its own `package.json` does not declare (it would only resolve through workspace hoisting) |
 
 Not scanned: `node_modules`, `dist`, `build`, `coverage`, `.next`, `.turbo`,
 `target`, `__fixtures__`, any `CHANGELOG.md`, `history/`, `release-audit/`,
@@ -66,6 +71,12 @@ pnpm test:sdk-package-names                   # unit tests
    - `peer-range`: widen the range (e.g. `^0.1.0`) to include the version in
      `sdk/package.json`.
    - `table-mismatch`: correct the package-name cell.
+   - `example-name`: rename the example to `iln-<dir>`. Nothing filters on
+     example names, and the lockfile keys importers by path, so a rename
+     needs no lockfile change.
+   - `example-private`: add `"private": true`.
+   - `example-undeclared-import`: add the package to the example's
+     `dependencies` (`file:../../sdk` for `@iln/sdk`).
 3. If a mention of the retired name is needed on purpose (a migration
    note or a dependency-confusion inventory), add the pragma
    `sdk-name-check: allow-legacy` to that same line, inside a comment

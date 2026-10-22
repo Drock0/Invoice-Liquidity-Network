@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { EvidenceViewer } from './EvidenceViewer';
-import type { DisputeEvidence } from '@iln/shared';
+import type { DisputeEvidence } from '@iln/sdk';
 
 describe('EvidenceViewer', () => {
   const mockEvidence: DisputeEvidence[] = [

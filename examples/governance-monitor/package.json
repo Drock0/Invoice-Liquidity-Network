@@ -1,5 +1,5 @@
 {
-  "name": "@iln/governance-monitor",
+  "name": "iln-governance-monitor",
   "version": "1.0.0",
   "description": "Reference implementation for monitoring ILN governance contract proposals via live contract calls",
   "private": true,

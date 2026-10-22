@@ -1,5 +1,5 @@
 {
-  "name": "submit-invoice",
+  "name": "iln-submit-invoice",
   "version": "1.0.0",
   "description": "Example Node.js script for submitting invoices programmatically",
   "main": "dist/index.js",

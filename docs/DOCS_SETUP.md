@@ -69,8 +69,9 @@ the `check-meta-nav` job of `docs-deploy.yml`). The check fails when:
 > scanned by `scripts/check-sdk-package-names.mjs`, so a retired name in a
 > ported page fails CI. The SDK pages below (migration guide, E2E, trust
 > model, sdk-next notes) were already migrated to the canonical names in
-> #1218 and can be ported as-is. See
-> [runbooks/sdk-package-names.md](runbooks/sdk-package-names.md).
+> #1218 and can be ported as-is. Example apps under `examples/` are named
+> `iln-<dir>` and must declare every `@iln/*` package they import (#1220).
+> See [runbooks/sdk-package-names.md](runbooks/sdk-package-names.md).
 
 - [ ] Local development guide (`docs/local-development.md`)
 - [ ] CI/CD reference (`docs/ci-cd.md`)
@@ -178,6 +179,9 @@ the `check-meta-nav` job of `docs-deploy.yml`). The check fails when:
 - [ ] Runbook: Payer Cryptographic Signature Verification (`docs/runbooks/payer-signature-verification.md`)
 - [ ] Runbook: Payer Substitution Rejection Across Lifecycle States (`docs/runbooks/payer-substitution-rejection.md`)
 - [ ] Runbook: @iln/react Peer-Dependency Contract (`docs/runbooks/react-peer-contract.md`)
+- [ ] Runbook: @iln/react Imports the Canonical SDK (`docs/runbooks/react-sdk-imports.md`)
+- [ ] Runbook: SDK Clean Consumer Install (`docs/runbooks/sdk-consumer-install.md`)
+- [ ] Runbook: SDK Deprecation Warnings (`docs/runbooks/sdk-deprecations.md`)
 - [ ] Runbook: SDK Export Map Consistency (`docs/runbooks/sdk-export-maps.md`)
 - [ ] Runbook: Canonical SDK Package Names (`docs/runbooks/sdk-package-names.md`)
 - [ ] Runbook: SDK Release-Candidate Pack Smoke (`docs/runbooks/sdk-rc-smoke.md`)

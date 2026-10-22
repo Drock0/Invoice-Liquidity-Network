@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { DisputeReasonCategory } from '@iln/shared';
+import type { DisputeReasonCategory } from '@iln/sdk';
 import { useFileDispute } from '../hooks/useDispute';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { uploadToIpfs, isValidIpfsCid } from '../utils/ipfs';

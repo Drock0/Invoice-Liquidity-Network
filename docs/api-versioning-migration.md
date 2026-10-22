@@ -53,7 +53,7 @@ Following the SDK and CLI consolidation work, the monorepo package topology is r
 | `packages/sdk/` | `@iln/sdk-next` | **Next / Experimental** | Browser-first SDK rewrite; pathing to `@iln/sdk` v2 (see [sdk-next-migration.md](sdk-next-migration.md)). |
 | `cli/` | `@invoice-liquidity/cli` | **Stable** | Single canonical CLI tool for interacting with ILN contracts. |
 | `packages/cli/` | `@iln/cli` | **Removed** | Retired duplicate CLI package; consolidated into `cli/`. |
-| `packages/invoice-sdk/` | `@iln/invoice-sdk` | **Removed** | Retired zero-source re-export alias. |
+| `packages/invoice-sdk/` | `@iln/invoice-sdk` | **Removed** | Retired zero-source re-export alias. | <!-- sdk-name-check: allow-legacy -->
 
 ---
 
@@ -88,7 +88,7 @@ If your project was using the retired private package `@iln/cli` (`packages/cli`
 `packages/invoice-sdk` was an unused re-export alias and has been removed. All imports must target `@iln/sdk` directly:
 
 ```diff
-- import { ILNSdk } from '@iln/invoice-sdk';
+- import { ILNSdk } from '@iln/invoice-sdk'; // sdk-name-check: allow-legacy
 + import { ILNSdk } from '@iln/sdk';
 ```
 

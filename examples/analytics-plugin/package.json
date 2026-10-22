@@ -1,5 +1,5 @@
 {
-  "name": "analytics-plugin",
+  "name": "iln-analytics-plugin",
   "version": "1.0.0",
   "description": "Custom analytics plugin example for Invoice Liquidity Network SDK",
   "main": "index.ts",

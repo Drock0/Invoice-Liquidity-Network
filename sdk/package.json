@@ -26,7 +26,10 @@
     "dist",
     "README.md"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/legacy-imports.mjs",
+    "./dist/legacy-imports.cjs"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -57,13 +60,13 @@
     "check-size": "node ../scripts/check-bundle-size.js"
   },
   "dependencies": {
-    "@iln/shared": "workspace:*",
     "@stellar/freighter-api": "^6.0.1",
     "@stellar/stellar-sdk": "^15.0.1",
     "axios": "^1.16.0"
   },
   "devDependencies": {
     "@iln/eslint-config": "workspace:*",
+    "@iln/shared": "workspace:*",
     "@playwright/test": "^1.49.1",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",

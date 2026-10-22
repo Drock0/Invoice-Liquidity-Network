@@ -5,7 +5,15 @@
  * that was written against older SDK versions or transition-period APIs.
  *
  * Issue #1219: Add compatibility shim for legacy SDK imports
+ *
+ * Deprecated (issue #1222): importing this subpath emits the one-time
+ * `ILN_SDK_DEP001` migration warning. Import from `@iln/sdk` instead; the
+ * subpath is removed in 1.0.0. See docs/sdk-migration-guide.md.
  */
+
+import { emitDeprecationWarning } from './deprecations';
+
+emitDeprecationWarning('ILN_SDK_DEP001');
 
 // Re-export all public APIs under their canonical names
 export * from './index';

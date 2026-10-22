@@ -68,7 +68,7 @@ This inconsistency creates real friction:
 | 9 | `packages/scripts/` | `@iln/scripts` | `@iln/scripts` | no |
 | 10 | `packages/test-utils/` | `@iln/test-utils` | `@iln/test-utils` | no |
 | 11 | `packages/upgrade-tests/` | `@iln/upgrade-tests` | `@iln/upgrade-tests` | no |
-| 12 | `packages/invoice-sdk/` | `@iln/invoice-sdk` | `@iln/invoice-sdk` | no |
+| 12 | `packages/invoice-sdk/` | `@iln/invoice-sdk` | `@iln/invoice-sdk` | no | <!-- sdk-name-check: allow-legacy -->
 | 13 | `packages/docs/` | `@invoice-liquidity/docs-next` | `@iln/docs` | yes |
 | 14 | `docs/` | `@invoice-liquidity/docs` | `@iln/docs-legacy` | yes |
 | 15 | `cli/` | `@invoice-liquidity/cli` | `@iln/cli-legacy` | yes |

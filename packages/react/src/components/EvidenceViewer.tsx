@@ -1,5 +1,5 @@
 import React from 'react';
-import type { DisputeEvidence } from '@iln/shared';
+import type { DisputeEvidence } from '@iln/sdk';
 import { AddressDisplay } from './AddressDisplay';
 import { getIpfsGatewayUrl } from '../utils/ipfs';
 

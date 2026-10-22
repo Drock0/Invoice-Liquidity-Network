@@ -6,7 +6,7 @@ import type {
   DisputeAnalytics,
   DisputeReasonCategory,
   DisputeResolutionDecision,
-} from '@iln/shared';
+} from '@iln/sdk';
 
 /** @public Stable cache-key factory for consumers that invalidate dispute queries directly. */
 export const disputeKeys = {

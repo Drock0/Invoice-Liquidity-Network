@@ -1,0 +1,77 @@
+name: React SDK Imports
+
+# Blocking guard for @iln/react's imports of the canonical SDK (#1221).
+#
+# Fails when @iln/react imports any ILN package other than the `@iln/sdk` root
+# (the unpublished `@iln/shared`, `@iln/sdk-next`, retired names, deep or
+# deprecated subpaths), reaches into ../../sdk with a relative path, imports a
+# package its manifest does not declare, or imports a name the SDK's public
+# entry does not export. The JSON report is uploaded on every run (pass or
+# fail) as proof the control ran — see docs/runbooks/react-sdk-imports.md.
+#
+# Dependency-free (plain Node), so it does not need a pnpm install.
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  react-sdk-imports:
+    name: React imports canonical SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Unit tests for the guard
+        run: node --test scripts/__tests__/check-react-sdk-imports.test.mjs
+
+      - name: Enforce canonical SDK imports in @iln/react
+        run: node scripts/check-react-sdk-imports.mjs --json="$RUNNER_TEMP/react-sdk-imports-report.json"
+
+      - name: Job summary
+        if: always()
+        run: |
+          REPORT="$RUNNER_TEMP/react-sdk-imports-report.json"
+          [ -f "$REPORT" ] || exit 0
+          node -e '
+            const r = require(process.argv[1]);
+            const s = r.summary;
+            const lines = [
+              "### React SDK imports",
+              "",
+              `| Result | Findings | Files | @iln/sdk imports | SDK exports | By rule |`,
+              `|---|---|---|---|---|---|`,
+              `| ${s.ok ? "✅ pass" : "❌ fail"} | ${s.total} | ${s.filesScanned} | ${s.sdkImports} | ${s.sdkExports} | ${JSON.stringify(s.byRule)} |`,
+            ];
+            console.log(lines.join("\n"));
+          ' "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-sdk-imports-report
+          path: ${{ runner.temp }}/react-sdk-imports-report.json
+          if-no-files-found: ignore
+          retention-days: 30

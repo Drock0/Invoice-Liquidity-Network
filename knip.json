@@ -104,9 +104,6 @@
       "entry": ["**/*.{ts,js}"],
       "project": ["**/*.{ts,js}"]
     },
-    "packages/react": {
-      "ignoreDependencies": ["@iln/shared"]
-    },
     "packages/eslint-config": {
       "ignoreDependencies": []
     }

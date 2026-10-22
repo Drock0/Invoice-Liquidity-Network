@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { DisputeRecord, DisputeStatus, DisputeResolutionDecision } from '@iln/shared';
+import type { DisputeRecord, DisputeStatus, DisputeResolutionDecision } from '@iln/sdk';
 import { useDisputeList, useResolveDispute } from '../hooks/useDispute';
 import { AddressDisplay } from './AddressDisplay';
 import { EvidenceViewer } from './EvidenceViewer';
